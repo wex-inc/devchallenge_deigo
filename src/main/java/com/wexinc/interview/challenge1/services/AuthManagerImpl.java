@@ -47,7 +47,7 @@ public class AuthManagerImpl implements AuthManager {
 	public AuthorizationToken verifyAuthToken(String authToken) throws AuthorizationException {
 		AuthorizationToken token = tokens.getOrDefault(authToken, null);
 		if (token == null) throw new AuthorizationException();
-		return token;
+		return rotateAuthToken(token);
 	}
 
 	@Override
@@ -60,13 +60,22 @@ public class AuthManagerImpl implements AuthManager {
 		tokens.put(newToken.getAuthToken(), newToken);
 		return newToken;
 	}
-
-	@Override
-	public AuthorizationToken changePassword(int userId, String authToken, String newPassword)
-			throws AuthorizationException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	
+	@Override
+	public AuthorizationToken changePassword(int userId, String authToken, String newPassword, String oldPassword) throws AuthorizationException {
+		try {
+			final AuthorizationToken token = verifyAuthToken(authToken);
+			User user = userRepo.loadUser(userId);
+			if(user.getPassHash().equalsIgnoreCase(hasher.hash(oldPassword, "salt"))) {
+				user.setPassHash(hasher.hash(newPassword, "salt"));
+				userRepo.saveUser(user);
+			} else {
+				throw new AuthorizationException();
+			}
+			
+			return token;
+		} catch (Exception e) {
+			return null;
+		}
+	}
 }
