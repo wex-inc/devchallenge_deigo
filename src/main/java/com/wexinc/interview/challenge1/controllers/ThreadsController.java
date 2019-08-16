@@ -49,8 +49,16 @@ public class ThreadsController {
 				json());
 
 		get(Path.OneThread, (req, resp) -> {
-			final int threadId = Integer.parseInt(req.params(":threadId"));
-			return threadRepo.get(threadId);
+			if((req.params(":threadId")).matches("[\\d+]")) {
+				final int threadId = Integer.parseInt(req.params(":threadId"));
+				MsgThread callBack = threadRepo.get(threadId);
+				if(callBack != null) {
+					return callBack;
+				}
+			}
+			resp.status(404);
+			resp.header("Content-Type", "application/json");
+			return "400 Not found";
 		}, json());
 
 		post(Path.ThreadList, handleMessagePost, json());
@@ -65,6 +73,7 @@ public class ThreadsController {
 
 		final String authToken = req.headers("X-WEX-AuthToken");
 		final AuthorizationToken token = authManager.verifyAuthToken(authToken);
+		resp.header("X-WEX-AuthToken", token.getAuthToken());
 		MsgThread thread;
 		if (message.getThreadId() == 0) {
 			thread = threadRepo.createMessage(token.getUserId(), message.getText());

@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 import com.google.inject.Inject;
 import com.wexinc.interview.challenge1.models.AuthorizationToken;
 import com.wexinc.interview.challenge1.models.LoginRequest;
+import com.wexinc.interview.challenge1.models.PasswordChangeRequest;
 import com.wexinc.interview.challenge1.models.User;
 import com.wexinc.interview.challenge1.repositories.UserRepo;
 import com.wexinc.interview.challenge1.services.AuthManager;
@@ -19,6 +20,7 @@ import com.wexinc.interview.challenge1.util.Path;
 import spark.Request;
 import spark.Response;
 import spark.Route;
+import spark.Spark;
 
 public class AuthController {
 	private UserRepo userRepo;
@@ -40,6 +42,7 @@ public class AuthController {
 		logger.info("Starting AuthController");
 
 		post(Path.Login, handleLogin, json());
+		Spark.patch(Path.Login, handlePassword, json());
 	}
 
 	private Route handleLogin = (Request req, Response resp) -> {
@@ -58,6 +61,32 @@ public class AuthController {
 
 		final AuthorizationToken token = authManager.login(user.getId(), loginRequest.getPassword());
 		return token.getAuthToken();
+	};
+	
+	private Route handlePassword = (Request req, Response resp) -> {
+		final String authToken = req.headers("X-WEX-AuthToken");
+		final PasswordChangeRequest pwChangeRequest = new Gson().fromJson(req.body(), PasswordChangeRequest.class);
+		
+		if(AppUtils.isNullOrEmpty(pwChangeRequest.getUserName()) || AppUtils.isNullOrEmpty(pwChangeRequest.getOldPassword()) || AppUtils.isNullOrEmpty(pwChangeRequest.getNewPassword())) {
+			resp.status(400);
+			return "";			
+		}
+		
+		final User user = userRepo.getByName(pwChangeRequest.getUserName());
+		if (user == null || user.getPassHash().equals(pwChangeRequest.getOldPassword())) {
+			resp.status(403);
+			return "";
+		}
+		
+		final AuthorizationToken token = authManager.changePassword(user.getId(), authToken, pwChangeRequest.getNewPassword(), pwChangeRequest.getOldPassword());
+		
+		if(token != null) {
+			resp.header("X-WEX-AuthToken", token.getAuthToken());
+		} else {
+			resp.status(404);
+		}
+		
+		return "";
 	};
 
 }
