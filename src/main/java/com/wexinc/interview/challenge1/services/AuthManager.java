@@ -10,6 +10,6 @@ public interface AuthManager {
 
 	public AuthorizationToken rotateAuthToken(AuthorizationToken token) throws AuthorizationException;
 
-	public AuthorizationToken changePassword(int userId, String authToken, String newPassword)
+	public AuthorizationToken changePassword(int userId, String password, String authToken, String newPassword)
 			throws AuthorizationException;
 }

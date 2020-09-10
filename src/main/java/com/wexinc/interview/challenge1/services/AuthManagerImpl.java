@@ -62,10 +62,24 @@ public class AuthManagerImpl implements AuthManager {
 	}
 
 	@Override
-	public AuthorizationToken changePassword(int userId, String authToken, String newPassword)
+	public AuthorizationToken changePassword(int userId, String password, String authToken, String newPassword)
 			throws AuthorizationException {
-		// TODO Auto-generated method stub
-		return null;
+
+		User user = userRepo.loadUser(userId);
+
+		if (user == null) throw new AuthorizationException();
+
+		String verifyHash = hasher.hash(password, "salt");
+
+		if (!verifyHash.equals(user.getPassHash())) throw new AuthorizationException();
+
+		user.setPassHash(hasher.hash(newPassword, "salt"));
+		userRepo.saveUser(user);
+
+		AuthorizationToken newToken = generateToken(user);
+		tokens.put(newToken.getAuthToken(), newToken);
+
+		return newToken;
 	}
 
 	
