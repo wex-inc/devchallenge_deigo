@@ -77,6 +77,8 @@ public class ThreadsController {
 			thread = threadRepo.createMessage(message.getThreadId(), token.getUserId(), message.getText());
 		}
 
-		return new PostSuccessResponse(thread.getId());
+		final AuthorizationToken newToken = authManager.rotateAuthToken(token);
+
+		return new PostSuccessResponse(thread.getId(), newToken.getAuthToken());
 	};
 }
