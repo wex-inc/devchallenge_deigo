@@ -41,5 +41,6 @@ public class Main {
 
 	private static void initializeAdminUser(UserRepo repo, PasswordHasher hasher) {
 		repo.createUser("admin", hasher.hash("admin", "salt"), AccessLevel.Admin);
+		repo.createUser("user", hasher.hash("123456", "salt"), AccessLevel.Admin);
 	}
 }

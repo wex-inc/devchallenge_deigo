@@ -3,6 +3,7 @@ package com.wexinc.interview.challenge1.controllers;
 import static com.wexinc.interview.challenge1.util.JsonUtil.json;
 import static spark.Spark.post;
 
+import com.wexinc.interview.challenge1.models.NewPasswordRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +40,36 @@ public class AuthController {
 
 		logger.info("Starting AuthController");
 
+		post(Path.NewPassword, handleNewPassword, json());
 		post(Path.Login, handleLogin, json());
 	}
+
+	private Route handleNewPassword = (Request req, Response resp) -> {
+		final NewPasswordRequest newPasswordRequest = new Gson().fromJson(req.body(), NewPasswordRequest.class);
+
+		if (newPasswordRequest == null || AppUtils.isNullOrEmpty(newPasswordRequest.getPassword())
+				|| AppUtils.isNullOrEmpty(newPasswordRequest.getUserName())
+				|| AppUtils.isNullOrEmpty(newPasswordRequest.getNewPassword())) {
+			resp.status(400);
+			return "";
+		}
+
+		final User user = userRepo.getByName(newPasswordRequest.getUserName());
+		if (user == null) {
+			resp.status(403);
+			return "";
+		}
+
+		final String authToken = req.headers("X-WEX-AuthToken");
+		final AuthorizationToken token = authManager.verifyAuthToken(authToken);
+
+		final AuthorizationToken newToken = authManager.changePassword(user.getId(),
+				newPasswordRequest.getPassword(),
+				token.getAuthToken(),
+				newPasswordRequest.getNewPassword());
+
+		return newToken.getAuthToken();
+	};
 
 	private Route handleLogin = (Request req, Response resp) -> {
 		final LoginRequest loginRequest = new Gson().fromJson(req.body(), LoginRequest.class);

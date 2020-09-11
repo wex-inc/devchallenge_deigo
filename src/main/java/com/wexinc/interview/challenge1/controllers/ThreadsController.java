@@ -49,8 +49,13 @@ public class ThreadsController {
 				json());
 
 		get(Path.OneThread, (req, resp) -> {
-			final int threadId = Integer.parseInt(req.params(":threadId"));
-			return threadRepo.get(threadId);
+			try {
+				final int threadId = Integer.parseInt(req.params(":threadId"));
+				return threadRepo.get(threadId);
+			} catch (Exception e) {
+				resp.status(404);
+				return "404 not found";
+			}
 		}, json());
 
 		post(Path.ThreadList, handleMessagePost, json());
@@ -72,6 +77,8 @@ public class ThreadsController {
 			thread = threadRepo.createMessage(message.getThreadId(), token.getUserId(), message.getText());
 		}
 
-		return new PostSuccessResponse(thread.getId());
+		final AuthorizationToken newToken = authManager.rotateAuthToken(token);
+
+		return new PostSuccessResponse(thread.getId(), newToken.getAuthToken());
 	};
 }
